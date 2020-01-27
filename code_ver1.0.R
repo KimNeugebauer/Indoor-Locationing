@@ -87,28 +87,44 @@ table(training$WAP001)
 table(training$max_signal)
 
 
-# Principle component analysis
+## PRINCIPLE COMPONENT ANALYSIS
 
 pca <- prcomp(only_wap)
 
 attributes(pca)
 summary(pca)
 
+plot(pca, xlab = "Linear combinations of WAP´s")
+
+
+# Percentage of explained variance in Scree Plot
 
 fviz_eig(pca)
 
+# ????
+#fviz_pca_ind(pca, col.ind = "cos2")
+#viz_pca_var(pca, col.var = "contrib")
 
-fviz_pca_ind(pca, col.ind = "cos2", repel = TRUE)
-fviz_pca_var(pca, col.var = "contrib")
 fviz_pca_biplot(pca, col.var = "contrib")
+biplot(pca)
 
 
-# Eigenvalues
+# Calculating Eigenvalues
 
 eigval <- get_eigenvalue(pca)
 
 eigval
 head(eigval, 10)
+
+
+# Understanding the linear combinations and their (explained) variance
+
+pca_variance <- pca$sdev^2
+
+pca_variance
+
+max(pca_variance)
+summary(pca_variance)
 
 
 # Results for Variables
@@ -122,6 +138,10 @@ pcavar$cos2           # Quality of representation
 # Results for Individuals
 
 pcaind <- get_pca_ind(pca)
+
+# Coordinates give same results as predictions made according to pca, why ??
+#pca_pred <- predict(pca)
+#pca_pred
 
 pcaind$coord          # Coordinates
 pcaind$contrib        # Contributions to the PCs
