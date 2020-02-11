@@ -11,11 +11,39 @@ library(tidyverse)
 library(forecast)
 library(scales)
 library(factoextra)
+library(plotly)
+
+
+# Initial exploration
+
+training <- trainingData
+
+
+dim(training)
+
+summary(training[, 465:475])
+
+head(training[, 465:475], 10)
+
+count(distinct(training))
+
+
+# Checking missing values
+
+sum(is.na(training))   # zero missing values detected
+
+
+training$LATITUDE <- as.numeric(training$LATITUDE)
+training$LONGITUDE <- as.numeric(training$LONGITUDE)
+
+
+# Exchanging 100 with -100 for no signal
+
+
+training[ ,1 : (length(colnames(training)) - 10)] [training[ ,1 : (length(colnames(training)) - 10)] == 100] = -100
 
 
 # Identifying maximum signal strength per observation
-
-training <- trainingData
 
 training %>% 
   mutate(max_signal=NA)
@@ -23,14 +51,14 @@ training %>%
 
 training$max_signal = training %>% 
   select(starts_with("WAP")) %>% 
-  apply(1,min)
+  apply(1,max)
 
 
 
-# Exchanging 100 with 0 for no signal
+# Exchanging -100 with 0 for no signal
 
 
-training[ ,1 : (length(colnames(training)) - 10)] [training[ ,1 : (length(colnames(training)) - 10)] == 100] = 0
+training[ ,1 : (length(colnames(training)) - 10)] [training[ ,1 : (length(colnames(training)) - 10)] == -100] = 0
   
 
 training[ training["max_signal"] == 100,"max_signal"] = 0
@@ -56,100 +84,67 @@ training = training [- which (training %>% select(starts_with("WAP")) %>%
 
 
 
-# Taking only WAP columns and converting data to a "long table"
+# Deleting all rows where signal strength is too weak (less than -95)
 
-
-only_wap <- select(training, starts_with("WAP"))
-
-wap_values <- stack(only_wap)
-
-
-# Deleting all rows where signal strength is stronger than -30
-
-wap_values <- wap_values %>% filter(!(values > -30 & values < 0))
-
-# Alternatively: 
-wap_values <- wap_values %>% filter(values < -30 | values == 0)
-
-
-
-training2 <- training[-which(training[, 1:457] < 0)]  
-                               #training[, 1:457] < 0)]
-
-training1 <- training[training[, 1:457] < -30 | training[, 1:457] == 0]
-
-# why does this not give me the same number of observations 
-# as wap_values above? 9.075.828 versus 9.274.406 
-
-
+training <- training %>% filter(max_signal >= -95)
 
 table(training$WAP001)
 table(training$max_signal)
 
 
-## PRINCIPLE COMPONENT ANALYSIS
 
-pca <- prcomp(only_wap)
+# Renaming some columns
 
-attributes(pca)
-summary(pca)
-
-plot(pca, xlab = "Linear combinations of WAP´s")
-
-
-# Percentage of explained variance in Scree Plot
-
-fviz_eig(pca)
-
-# ????
-#fviz_pca_ind(pca, col.ind = "cos2")
-#viz_pca_var(pca, col.var = "contrib")
-
-fviz_pca_biplot(pca, col.var = "contrib")
-biplot(pca)
-
-
-# Calculating Eigenvalues
-
-eigval <- get_eigenvalue(pca)
-
-eigval
-head(eigval, 10)
-
-
-# Understanding the linear combinations and their (explained) variance
-
-pca_variance <- pca$sdev^2
-
-pca_variance
-
-max(pca_variance)
-summary(pca_variance)
-
-
-# Results for Variables
-
-pcavar <- get_pca_var(pca)
-
-pcavar$coord          # Coordinates
-pcavar$contrib        # Contributions to the PCs
-pcavar$cos2           # Quality of representation
-
-# Results for Individuals
-
-pcaind <- get_pca_ind(pca)
-
-# Coordinates give same results as predictions made according to pca, why ??
-#pca_pred <- predict(pca)
-#pca_pred
-
-pcaind$coord          # Coordinates
-pcaind$contrib        # Contributions to the PCs
-pcaind$cos2           # Quality of representation 
+training <- training %>% 
+  rename(Longitude = LONGITUDE,
+         Latitude = LATITUDE,
+         Building = BUILDINGID,
+         User_ID = USERID,
+         Floor = FLOOR,
+         Timestamp = TIMESTAMP,
+         Phone_ID = PHONEID)
 
 
 
+# Calculating average signal strength for every row
 
+training$Mean <- rowMeans(training[, 1:465])
+
+
+# ... and per building
+
+training %>% 
+  group_by(Building_ID) %>% 
+  summarise(mean(max_signal))
+
+# ... and per floor
+
+training %>% 
+  group_by(Floor) %>% 
+  summarise(mean(max_signal))
+
+# ... and per User
+
+training %>% 
+  group_by(User_ID) %>% 
+  summarise(mean(max_signal))
+
+
+# Investigating User_ID somewhat more
+
+table(training$User_ID)
+
+User1 <- training[training$User_ID == 1 ,]
+User11 <- training[training$User_ID == 11 ,]
+User14 <- training[training$User_ID == 14 ,]
+
+
+Userx <- training[training$User_ID == 14 |
+                    training$User_ID ==11|
+                    training$User_ID ==1 ,]
+
+
+table(training$Phone_ID)
 
 
 
