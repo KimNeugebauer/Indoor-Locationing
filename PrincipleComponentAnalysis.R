@@ -3,26 +3,16 @@
 ## PRINCIPLE COMPONENT ANALYSIS
 
 
-# Taking only WAP columns and converting data to a "long table"
+# Taking only WAP columns and converting data to a "long table" called wap_values
 
 
 only_wap <- select(training, starts_with("WAP"))
 
+
 wap_values <- stack(only_wap)
 
+table(wap_values$values)
 
-# Deleting all rows where signal strength is stronger than -30
-
-wap_values <- wap_values %>% filter(!(values > -30 & values < 0))
-
-# Alternatively: 
-wap_values <- wap_values %>% filter(values < -30 | values == 0)
-
-
-# ???
-
-training2 <- training[-which(training[, 1:457] < 0)]  
-#training[, 1:457] < 0)]
 
 training1 <- training[training[, 1:457] < -30 | training[, 1:457] == 0]
 
@@ -31,21 +21,25 @@ training1 <- training[training[, 1:457] < -30 | training[, 1:457] == 0]
 
 
 
-## PCA
+## PRINCIPLE COMPONENT ANALYSIS
 
 pca <- prcomp(only_wap)
 
 attributes(pca)
 summary(pca)
 
-plot(pca, xlab = "Linear combinations of WAP´s")
 
 
 # Percentage of explained variance in Scree Plot
 
+plot(pca, xlab = "Linear combinations of WAP´s")
+
+# Nicer Version
+
 fviz_eig(pca)
 
-# ????
+
+# Various vizualisations 
 
 fviz_pca_ind(pca, col.ind = "cos2")
 viz_pca_var(pca, col.var = "contrib")
@@ -59,6 +53,8 @@ eigval <- get_eigenvalue(pca)
 
 eigval
 head(eigval, 10)
+
+# With 194 combinations of Variables (WAP´s) 95 % of total variance in the data can be explained
 
 
 # Understanding the linear combinations and their (explained) variance
@@ -83,10 +79,45 @@ pcavar$cos2           # Quality of representation
 
 pcaind <- get_pca_ind(pca)
 
-# Coordinates give same results as predictions made according to pca, why ??
-#pca_pred <- predict(pca)
-#pca_pred
-
 pcaind$coord          # Coordinates
 pcaind$contrib        # Contributions to the PCs
-pcaind$cos2           # Quality of representation 
+pcaind$cos2           # Quality of representation
+
+
+# Coordinates for Individuals give same results as predictions made according to pca, why is that??
+
+
+# Moving Longitude and Latitude to the front
+
+training = training[,c(465,466,append(c(1:464), c(467:475)))]
+
+
+# Creating a data frame with Longitude and the PC´s
+
+training_pc <- data.frame(Longitude = training$Longitude, pca$x)
+
+# Taking the first 194 Principle Components
+
+training_pc <- training_pc[,1:195]
+
+
+# RANDOM FOREST MODEL
+
+grid = expand.grid(mtry = c(12,14))
+
+ctrl <- trainControl(method = "oob", 
+                     search = "grid",
+                     classProbs = TRUE
+)
+
+rfFit <- train(Longitude~., data=training_pc, 
+               method="rf", 
+               preProc=c("center","scale"),
+               tuneGrid = grid,
+               trControl=ctrl,
+)
+
+
+pca_pred <- predict(pca)
+pca_pred
+

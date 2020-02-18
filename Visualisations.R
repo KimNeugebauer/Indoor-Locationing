@@ -12,9 +12,9 @@ User14 %>%
 # Building 1
 
 training %>% 
-  filter(Building_ID == 1, Floor == 0) %>% 
+  filter(Building_ID == 2) %>% 
   group_by(Building_ID, Floor) %>% 
-  ggplot(aes( x = Longitude, y = Latitude, color = User_ID)) +
+  ggplot(aes( x = Longitude, y = Latitude, color = max_signal)) +
   geom_point()
 
 # Building 2

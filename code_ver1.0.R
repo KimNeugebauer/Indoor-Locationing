@@ -40,7 +40,7 @@ training$LONGITUDE <- as.numeric(training$LONGITUDE)
 # Exchanging 100 with -100 for no signal
 
 
-training[ ,1 : (length(colnames(training)) - 10)] [training[ ,1 : (length(colnames(training)) - 10)] == 100] = -100
+training[ ,1 : (length(colnames(training)) - 9)] [training[ ,1 : (length(colnames(training)) - 9)] == 100] = -100
 
 
 # Identifying maximum signal strength per observation
@@ -53,43 +53,67 @@ training$max_signal = training %>%
   select(starts_with("WAP")) %>% 
   apply(1,max)
 
+summary(training$max_signal)
+
+table(training$max_signal)
 
 
 # Exchanging -100 with 0 for no signal
 
 
 training[ ,1 : (length(colnames(training)) - 10)] [training[ ,1 : (length(colnames(training)) - 10)] == -100] = 0
+
   
 
-training[ training["max_signal"] == 100,"max_signal"] = 0
+# Exchanging -100 with 0 for the variable showing maximum signal strength.
+# Thus all rows with values of max_signal between 0 and -30 are invalid or don´t display any signal ever, so they can be deleted in a next step.
+
+training[ training["max_signal"] == -100,"max_signal"] = 0
 
 summary(training$max_signal)
+table(training$max_signal)
+
+count(training %>% select(max_signal) %>% filter(max_signal > -30))
+
+
+# Deleting all rows where max_signal > -30
+
+training = training[- which (training %>% select(max_signal) > -30), ]
 
 
 
-# Deleting all columns / WAP´s where variance of signal strength is 0
+# Deleting all rows where signal strength is too weak (max_signal < -90)
+# in order to receive better estimation results
+
+training = training[- which (training %>% select(max_signal) < -90), ]
+
+
+summary(training$max_signal)
+table(training$max_signal)
+
+
+# Deleting all columns / WAP´s where variance of signal strength is 0 and
+# Deleting all observations where variance of signal strength is 0 
+
 
 training = training [, - which (training %>% select(starts_with("WAP")) %>% 
                                   apply(2, var ) == 0)]
 
 
-training [,which (training %>% select(starts_with("WAP")) %>% 
-                    apply(2, var ) == 0)] = NULL
-
-
-# Deleting all rows where variance of signal strength is 0
-
-training = training [- which (training %>% select(starts_with("WAP")) %>% 
-                                  apply(1, var ) == 0) ,]
+nzv_cols <- nearZeroVar(training, uniqueCut = 0.1)
 
 
 
-# Deleting all rows where signal strength is too weak (less than -95)
 
-training <- training %>% filter(max_signal >= -95)
+sum(training %>% select(starts_with("WAP")) %>% 
+  apply(1, var ) == 0)
 
-table(training$WAP001)
-table(training$max_signal)
+
+
+# Checking distinct rows
+
+count(distinct(training[,1:465]))  
+
 
 
 
@@ -98,7 +122,7 @@ table(training$max_signal)
 training <- training %>% 
   rename(Longitude = LONGITUDE,
          Latitude = LATITUDE,
-         Building = BUILDINGID,
+         Building_ID = BUILDINGID,
          User_ID = USERID,
          Floor = FLOOR,
          Timestamp = TIMESTAMP,
@@ -108,7 +132,7 @@ training <- training %>%
 
 # Calculating average signal strength for every row
 
-training$Mean <- rowMeans(training[, 1:465])
+training$Mean <- rowMeans(training[, 1:463])
 
 
 # ... and per building
@@ -145,7 +169,5 @@ Userx <- training[training$User_ID == 14 |
 
 
 table(training$Phone_ID)
-
-
 
 
