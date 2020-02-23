@@ -102,6 +102,7 @@ training = training [, - which (training %>% select(starts_with("WAP")) %>%
 
 nzv_cols <- nearZeroVar(training, uniqueCut = 0.1)
 
+nzv_cols
 
 
 
@@ -113,7 +114,6 @@ sum(training %>% select(starts_with("WAP")) %>%
 # Checking distinct rows
 
 count(distinct(training[,1:465]))  
-
 
 
 

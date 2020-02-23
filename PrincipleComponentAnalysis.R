@@ -54,6 +54,7 @@ eigval <- get_eigenvalue(pca)
 eigval
 head(eigval, 10)
 
+# With 132 combinations of Variables (WAP´s) 90 % of total variance in the data can be explained
 # With 194 combinations of Variables (WAP´s) 95 % of total variance in the data can be explained
 
 
@@ -91,17 +92,28 @@ pcaind$cos2           # Quality of representation
 
 training = training[,c(465,466,append(c(1:464), c(467:475)))]
 
+# Removinig negative values in Longitude
 
-# Creating a data frame with Longitude and the PC´s
+training$Longitude = training$Longitude*(-1)
 
-training_pc <- data.frame(Longitude = training$Longitude, pca$x)
 
-# Taking the first 194 Principle Components
 
-training_pc <- training_pc[,1:195]
+# Creating a data frame with only Longitude and the PC´s and the same for Latitude
+
+training_pc_long <- data.frame(Longitude = training$Longitude, pca$x)
+
+training_pc_lat <- data.frame(Latitude = training$Latitude, pca$x)
+
+
+# Taking the first 132 / 194 Principle Components, respectively for Lat and Long
+
+training_pc_long <- training_pc_long[,1:21]
+
+training_pc_lat <- training_pc_lat[,1:195]
 
 
 # RANDOM FOREST MODEL
+# KNN MODEL
 
 grid = expand.grid(mtry = c(12,14))
 
@@ -110,11 +122,11 @@ ctrl <- trainControl(method = "oob",
                      classProbs = TRUE
 )
 
-rfFit <- train(Longitude~., data=training_pc, 
-               method="rf", 
-               preProc=c("center","scale"),
-               tuneGrid = grid,
-               trControl=ctrl,
+knnFit <- train(Longitude~., data=training_pc_long, 
+               method="knn", 
+               preProc=c("center","scale")
+               #tuneGrid = grid,
+               #trControl=ctrl,
 )
 
 
