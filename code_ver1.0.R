@@ -113,8 +113,10 @@ sum(training %>% select(starts_with("WAP")) %>%
 
 # Checking distinct rows
 
-count(distinct(training[,1:465]))  
+count(distinct(training[,1:465]))   
+count(training) - count(distinct(training[,1:465]))
 
+# is okay, 706 not distinct rows can be kept
 
 
 # Renaming some columns

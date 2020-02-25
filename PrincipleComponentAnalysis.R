@@ -44,7 +44,7 @@ fviz_eig(pca)
 fviz_pca_ind(pca, col.ind = "cos2")
 viz_pca_var(pca, col.var = "contrib")
 fviz_pca_biplot(pca, col.var = "contrib")   # takes super long
-biplot(pca)
+biplot(pca, scale = 0)
 
 
 # Calculating Eigenvalues
@@ -62,7 +62,7 @@ head(eigval, 10)
 
 pca_variance <- pca$sdev^2
 
-pca_variance
+pca_variance[1:10]
 
 max(pca_variance)
 summary(pca_variance)
@@ -88,26 +88,30 @@ pcaind$cos2           # Quality of representation
 # Coordinates for Individuals give same results as predictions made according to pca, why is that??
 
 
-# Moving Longitude and Latitude to the front
+# Moving Longitude and Latitude to the front in both data sets
 
 training = training[,c(465,466,append(c(1:464), c(467:475)))]
 
-# Removinig negative values in Longitude
+testing = testing[,c(465,466,append(c(1:464), c(467:475)))]
+
+
+# Removinig negative values in Longitude in both data sets
 
 training$Longitude = training$Longitude*(-1)
 
+testing$Longitude = testing$Longitude*(-1)
 
 
-# Creating a data frame with only Longitude and the PC´s and the same for Latitude
+# Creating a data frame with only Longitude eg Latitude and the PC´s for training data
 
 training_pc_long <- data.frame(Longitude = training$Longitude, pca$x)
 
 training_pc_lat <- data.frame(Latitude = training$Latitude, pca$x)
 
 
-# Taking the first 132 / 194 Principle Components, respectively for Lat and Long
+# Taking the first 20 / 132 / 194 Principle Components, respectively for Lat and Long for training data
 
-training_pc_long <- training_pc_long[,1:21]
+training_pc_long <- training_pc_long[,1:50]
 
 training_pc_lat <- training_pc_lat[,1:195]
 
@@ -130,6 +134,21 @@ knnFit <- train(Longitude~., data=training_pc_long,
 )
 
 
-pca_pred <- predict(pca)
+
+# Transforming also the test data into PCA format and then creating a data frame out of the PC´s
+
+testing_pca <- predict(pca, newdata = testing)
+testing_pca <- as.data.frame(testing_pca)
+
+
+# Taking the first 20 / 132 / 194 Principle Components of the test data
+
+testing_pca <- testing_pca[,1:21]
+
+
+# Predicting on the test data
+
+knn_pred <- predict(knnFit, testing_pca)
+pca_pred <- predict(Longitude~., data = testing, pca)
 pca_pred
 
