@@ -65,25 +65,26 @@ testing[ ,1 : (length(colnames(testing)) - 10)] [testing[ ,1 : (length(colnames(
 
 
 
-# Exchanging -100 with 0 for the variable showing maximum signal strength.
-# Thus all rows with values of max_signal between 0 and -30 are invalid or don´t display any signal ever, so they can be deleted in a next step.
+# Exchanging -100 with 0 for the variable maximum signal strength.
+# Thus all rows that don´t display any signal ever can be deleted in a next step.
 
 testing[ testing["max_signal"] == -100,"max_signal"] = 0
+
+
+
+# Deleting all rows where max_signal > -30 
+
+count(testing %>% select(max_signal) %>% filter(max_signal > -30))
 
 summary(testing$max_signal)
 table(testing$max_signal)
 
-count(testing %>% select(max_signal) %>% filter(max_signal > -30))
-
-
-# Deleting all rows where max_signal > -30
-
-testing = testing[- which (testing %>% select(max_signal) > -30), ]
+# Actually not present in the testing data but this would be the command:
+#testing = testing[- which (testing %>% select(max_signal) > -30), ]
 
 
 
-# Deleting all rows where signal strength is too weak (max_signal < -90)
-# in order to receive better estimation results
+# Deleting all rows where signal strength is too weak (max_signal < -90) in order to receive better estimation results
 
 testing = testing[- which (testing %>% select(max_signal) < -90), ]
 
@@ -92,31 +93,32 @@ summary(testing$max_signal)
 table(testing$max_signal)
 
 
-# Deleting all columns / WAP´s where variance of signal strength is 0 and
-# Deleting all observations where variance of signal strength is 0 
 
+# Deleting all columns / WAP´s where variance of signal strength is 0 and
 
 testing = testing [, - which (testing %>% select(starts_with("WAP")) %>% 
                                   apply(2, var ) == 0)]
 
-
-nzv_cols <- nearZeroVar(testing, uniqueCut = 0.1)
-
-nzv_cols
-
-
+# Detecting observations where variance of signal strength is 0 
 
 sum(testing %>% select(starts_with("WAP")) %>% 
       apply(1, var ) == 0)
 
 
+# Detecing near zero variance columns
+
+nzv_cols <- nearZeroVar(testing, uniqueCut = 0.1)
+
+nzv_cols    # Only unimportant variables, can be ignored
+
+
 
 # Checking distinct rows
 
-count(distinct(testing[,1:465]))   
-count(testing) - count(distinct(testing[,1:465]))
+count(distinct(testing[,1:367]))   
+count(testing) - count(distinct(testing[,1:367]))
 
-# is okay, 706 not distinct rows can be kept
+# is okay, only 5 not distinct rows; can be kept
 
 
 # Renaming some columns
@@ -134,25 +136,5 @@ testing <- testing %>%
 
 # Calculating average signal strength for every row
 
-testing$Mean <- rowMeans(testing[, 1:463])
-
-
-# ... and per building
-
-training %>% 
-  group_by(Building_ID) %>% 
-  summarise(mean(max_signal))
-
-# ... and per floor
-
-training %>% 
-  group_by(Floor) %>% 
-  summarise(mean(max_signal))
-
-# ... and per User
-
-training %>% 
-  group_by(User_ID) %>% 
-  summarise(mean(max_signal))
-
+testing$Mean <- rowMeans(testing[, 1:367])
 

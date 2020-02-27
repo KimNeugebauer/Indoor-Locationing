@@ -1,29 +1,24 @@
 
-
 ## PRINCIPLE COMPONENT ANALYSIS
 
 
 # Taking only WAP columns and converting data to a "long table" called wap_values
 
 
-only_wap <- select(training, starts_with("WAP"))
-
-
 wap_values <- stack(only_wap)
-
 table(wap_values$values)
 
 
-training1 <- training[training[, 1:457] < -30 | training[, 1:457] == 0]
+# Extracting WAP´s into a separate table
 
-# why does this not give me the same number of observations 
-# as wap_values above? 9.075.828 versus 9.274.406 
+only_wap_train <- select(training, starts_with("WAP"))
 
+only_wap_test <- select(testing, starts_with("WAP"))
 
 
 ## PRINCIPLE COMPONENT ANALYSIS
 
-pca <- prcomp(only_wap)
+pca <- prcomp(only_wap_train)
 
 attributes(pca)
 summary(pca)
@@ -54,6 +49,7 @@ eigval <- get_eigenvalue(pca)
 eigval
 head(eigval, 10)
 
+# With 14 combinations of Variables (WAP´s) 50 % of total variance in the data can be explained
 # With 132 combinations of Variables (WAP´s) 90 % of total variance in the data can be explained
 # With 194 combinations of Variables (WAP´s) 95 % of total variance in the data can be explained
 
@@ -64,7 +60,6 @@ pca_variance <- pca$sdev^2
 
 pca_variance[1:10]
 
-max(pca_variance)
 summary(pca_variance)
 
 
@@ -92,8 +87,8 @@ pcaind$cos2           # Quality of representation
 
 training = training[,c(465,466,append(c(1:464), c(467:475)))]
 
-testing = testing[,c(465,466,append(c(1:464), c(467:475)))]
-
+testing = testing[,c(368,369,append(c(1:367), c(370:378)))]
+testing = testing[,c(c(3:369),append(1,2, c(370:378)))]
 
 # Removinig negative values in Longitude in both data sets
 
@@ -102,48 +97,57 @@ training$Longitude = training$Longitude*(-1)
 testing$Longitude = testing$Longitude*(-1)
 
 
-# Creating a data frame with only Longitude eg Latitude and the PC´s for training data
+# Creating a data frame with only Longitude / Latitude and the PC´s for training data
 
 training_pc_long <- data.frame(Longitude = training$Longitude, pca$x)
 
 training_pc_lat <- data.frame(Latitude = training$Latitude, pca$x)
 
 
-# Taking the first 20 / 132 / 194 Principle Components, respectively for Lat and Long for training data
+# Taking the first 14 / 132 / 194 Principle Components, respectively for Lat and Long for training data
 
-training_pc_long <- training_pc_long[,1:50]
+training_pc_long <- training_pc_long[,1:133]
 
-training_pc_lat <- training_pc_lat[,1:195]
+training_pc_lat <- training_pc_lat[,1:133]
 
 
 # RANDOM FOREST MODEL
 # KNN MODEL
 
-grid = expand.grid(mtry = c(12,14))
+grid = expand.grid(k = c(3,9,14))
 
-ctrl <- trainControl(method = "oob", 
+ctrl <- trainControl(method = "cv", 
                      search = "grid",
-                     classProbs = TRUE
+                     number = 3
 )
 
-knnFit <- train(Longitude~., data=training_pc_long, 
+knnFit <- train(Longitude~., data = training_pc_long,
+               tuneLength = 7,
                method="knn", 
-               preProc=c("center","scale")
+               preProc=c("center","scale"),
                #tuneGrid = grid,
-               #trControl=ctrl,
+               trControl=ctrl,
 )
 
+set.seed(400)
 
 
 # Transforming also the test data into PCA format and then creating a data frame out of the PC´s
 
-testing_pca <- predict(pca, newdata = testing)
-testing_pca <- as.data.frame(testing_pca)
+
+pca_v <- prcomp(testing[, 1:367])
+
+fviz_eig(pca_v)
+
+testing_pca <- as.data.frame(Longitude = testing$Longitude, pca_v$x)
+
+#testing_pca <- predict(pca, newdata = testing)
+#testing_pca <- as.data.frame(Longitude = testing$Longitude, pca1$x)
 
 
 # Taking the first 20 / 132 / 194 Principle Components of the test data
 
-testing_pca <- testing_pca[,1:21]
+testing_pca <- testing_pca[,1:133]
 
 
 # Predicting on the test data
