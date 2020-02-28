@@ -2,18 +2,17 @@
 ## PRINCIPLE COMPONENT ANALYSIS
 
 
-# Taking only WAP columns and converting data to a "long table" called wap_values
-
-
-wap_values <- stack(only_wap)
-table(wap_values$values)
-
-
 # Extracting WAP´s into a separate table
 
 only_wap_train <- select(training, starts_with("WAP"))
 
 only_wap_test <- select(testing, starts_with("WAP"))
+
+
+# In case you need it: Taking only WAP columns and converting data to a "long table" called wap_values
+
+#wap_values <- stack(only_wap_train)
+#table(wap_values$values)
 
 
 ## PRINCIPLE COMPONENT ANALYSIS
@@ -90,6 +89,7 @@ training = training[,c(465,466,append(c(1:464), c(467:475)))]
 testing = testing[,c(368,369,append(c(1:367), c(370:378)))]
 testing = testing[,c(c(3:369),append(1,2, c(370:378)))]
 
+
 # Removinig negative values in Longitude in both data sets
 
 training$Longitude = training$Longitude*(-1)
@@ -106,53 +106,71 @@ training_pc_lat <- data.frame(Latitude = training$Latitude, pca$x)
 
 # Taking the first 14 / 132 / 194 Principle Components, respectively for Lat and Long for training data
 
-training_pc_long <- training_pc_long[,1:133]
+training_pc_long <- training_pc_long[,1:15]
 
 training_pc_lat <- training_pc_lat[,1:133]
 
 
-# RANDOM FOREST MODEL
 # KNN MODEL
 
-grid = expand.grid(k = c(3,9,14))
+#grid = expand.grid(mtry = c(3,9,14))   # only for RF
 
-ctrl <- trainControl(method = "cv", 
-                     search = "grid",
-                     number = 3
-)
 
-knnFit <- train(Longitude~., data = training_pc_long,
-               tuneLength = 7,
+ctrl <- trainControl(method = "repeatedcv", 
+                     repeats = 3)
+
+knnFit <- train(Longitude ~ ., data = training_pc_long,
                method="knn", 
-               preProc=c("center","scale"),
-               #tuneGrid = grid,
+               preProcess=c("center","scale"),
                trControl=ctrl,
+               tuneLength =9
 )
 
 set.seed(400)
 
+knnFit
 
-# Transforming also the test data into PCA format and then creating a data frame out of the PC´s
+ggplot(knnFit)
+table(predict(knnFit))
 
+
+# Transforming also the test data into PCA format 
 
 pca_v <- prcomp(testing[, 1:367])
 
-fviz_eig(pca_v)
-
-testing_pca <- as.data.frame(Longitude = testing$Longitude, pca_v$x)
-
-#testing_pca <- predict(pca, newdata = testing)
-#testing_pca <- as.data.frame(Longitude = testing$Longitude, pca1$x)
+testing_pca <- predict(pca_v, newdata = testing)
 
 
-# Taking the first 20 / 132 / 194 Principle Components of the test data
+# Creating a data frame out of the PC´s
 
-testing_pca <- testing_pca[,1:133]
+testing_pca <- as.data.frame(testing_pca)
+
+#testing_pca <- as.data.frame(Longitude = testing$Longitude, pca_v$x)
+
+
+
+# Taking the first 14 / 132 / 194 Principle Components of the test data
+
+testing_pca <- testing_pca[,1:15]
 
 
 # Predicting on the test data
 
 knn_pred <- predict(knnFit, testing_pca)
-pca_pred <- predict(Longitude~., data = testing, pca)
-pca_pred
+
+knn_pred
+plot(knn_pred, testing$Longitude)
+varImp(knnFit)
+
+
+# Confusion Matrix
+
+knn_pred <- as.factor(knn_pred)
+
+testing_longitude <- testing$Longitude                
+testing_longitude <- as.factor(testing_longitude) 
+
+confusionMatrix(table(knn_pred, testing_longitude))  # WHYYYY ????           
+table(knn_pred, testing_longitude)
+
 
