@@ -87,7 +87,7 @@ pcaind$cos2           # Quality of representation
 training = training[,c(465,466,append(c(1:464), c(467:475)))]
 
 testing = testing[,c(368,369,append(c(1:367), c(370:378)))]
-testing = testing[,c(c(3:369),append(1,2, c(370:378)))]
+
 
 
 # Removinig negative values in Longitude in both data sets
@@ -106,71 +106,102 @@ training_pc_lat <- data.frame(Latitude = training$Latitude, pca$x)
 
 # Taking the first 14 / 132 / 194 Principle Components, respectively for Lat and Long for training data
 
-training_pc_long <- training_pc_long[,1:15]
+training_pc_long <- training_pc_long[, 1:41]
 
-training_pc_lat <- training_pc_lat[,1:133]
+training_pc_lat <- training_pc_lat[, 1:41]
 
 
 # KNN MODEL
 
 #grid = expand.grid(mtry = c(3,9,14))   # only for RF
 
+set.seed(400)
 
 ctrl <- trainControl(method = "repeatedcv", 
                      repeats = 3)
 
-knnFit <- train(Longitude ~ ., data = training_pc_long,
+
+# training the model on Longitude
+
+knnFit.long <- train(Longitude ~ ., data = training_pc_long,
                method="knn", 
                preProcess=c("center","scale"),
                trControl=ctrl,
-               tuneLength =9
+               tuneLength = 7
 )
 
-set.seed(400)
 
-knnFit
-
-ggplot(knnFit)
-table(predict(knnFit))
+knnFit.long
+ggplot(knnFit.long)
 
 
-# Transforming also the test data into PCA format 
+# training the model on Latitude
 
-pca_v <- prcomp(testing[, 1:367])
-
-testing_pca <- predict(pca_v, newdata = testing)
-
-
-# Creating a data frame out of the PC´s
-
-testing_pca <- as.data.frame(testing_pca)
-
-#testing_pca <- as.data.frame(Longitude = testing$Longitude, pca_v$x)
+knnFit.lat <- train(Latitude ~ ., data = training_pc_lat,
+                method="knn", 
+                preProcess=c("center","scale"),
+                trControl=ctrl,
+                tuneLength = 7
+)
 
 
-
-# Taking the first 14 / 132 / 194 Principle Components of the test data
-
-testing_pca <- testing_pca[,1:15]
+knnFit.lat
+ggplot(knnFit.lat)
 
 
-# Predicting on the test data
+# Checking the importance of variables
 
-knn_pred <- predict(knnFit, testing_pca)
-
-knn_pred
-plot(knn_pred, testing$Longitude)
-varImp(knnFit)
+varImp(knnFit.long)
+varImp(knnFit.lat)
 
 
-# Confusion Matrix
 
-knn_pred <- as.factor(knn_pred)
+# Transforming also the test data into PCA format and checking eigenvalues 
 
-testing_longitude <- testing$Longitude                
-testing_longitude <- as.factor(testing_longitude) 
-
-confusionMatrix(table(knn_pred, testing_longitude))  # WHYYYY ????           
-table(knn_pred, testing_longitude)
+pca_v <- prcomp(testing[, 3:369])
+pca_v
 
 
+eigval_v <- get_eigenvalue(pca_v)
+head(eigval_v, 100)
+
+fviz_eig(pca_v)
+
+
+
+# Creating data frames out of the PC´s we have just calculated
+
+testing_pca.long <- data.frame(Longitude = testing$Longitude, pca_v$x)
+
+testing_pca.lat <- data.frame(Latitude = testing$Latitude, pca_v$x)
+
+
+# Taking the first 14 / 132 / 194 Principle Components of the data frames
+# depends on how many PC´s have been selected for the model training before
+
+testing_pca.long <- testing_pca.long[, 1:41]
+testing_pca.lat <- testing_pca.lat[, 1:41]
+
+
+# Predicting Longitude and Latitude for the test data, based on our trained model
+
+knnPred.long <- predict(knnFit.long, newdata = testing_pca.long[, 2:41])
+
+knnPred.lat <- predict(knnFit.lat, testing_pca.lat[, 2:41])
+
+
+# Comparing predicted against real values
+
+summary(knnPred.long)
+summary(testing$Longitude)
+
+summary(knnPred.lat)
+summary(testing$Latitude)
+
+
+# Combining the predictions for Lat and Long and substracting them from the real values in the testing data set
+
+acc <- (testing[, 1:2] - cbind(knnPred.long, knnPred.lat))
+
+sd(acc$Longitude)
+sd(acc$Latitude)

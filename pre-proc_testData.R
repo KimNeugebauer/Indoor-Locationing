@@ -11,6 +11,7 @@ library(tidyverse)
 library(forecast)
 library(scales)
 library(plotly)
+library(factoextra)
 
 
 # Initial exploration
