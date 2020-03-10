@@ -9,8 +9,6 @@ library(ggplot2)
 library(caret)
 library(tidyverse)
 library(forecast)
-library(scales)
-library(plotly)
 library(factoextra)
 
 
@@ -164,8 +162,5 @@ User1 <- training[training$User_ID == 1 ,]
 User11 <- training[training$User_ID == 11 ,]
 User14 <- training[training$User_ID == 14 ,]
 
-
-
-table(training$Phone_ID)
 
 

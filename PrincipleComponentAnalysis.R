@@ -36,7 +36,6 @@ fviz_eig(pca)
 # Various vizualisations 
 
 fviz_pca_ind(pca, col.ind = "cos2")
-viz_pca_var(pca, col.var = "contrib")
 fviz_pca_biplot(pca, col.var = "contrib")   # takes super long
 biplot(pca, scale = 0)
 

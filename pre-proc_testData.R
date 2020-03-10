@@ -9,8 +9,6 @@ library(ggplot2)
 library(caret)
 library(tidyverse)
 library(forecast)
-library(scales)
-library(plotly)
 library(factoextra)
 
 

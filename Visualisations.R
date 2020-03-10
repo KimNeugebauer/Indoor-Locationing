@@ -1,6 +1,11 @@
 
 ## Visualisations
 
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(plotly)
+
 # All Buildings, distinct Users
 
 User14 %>% 
@@ -45,3 +50,34 @@ plot_ly(Userx, x = ~Latitude, y = ~Longitude, z = ~Floor) %>%
 training %>% filter(Phone_ID == 14) %>% 
   plot_ly(x = ~Latitude, y = ~Longitude, z = ~Floor) %>%
   add_markers()
+
+
+
+# Creating a predictions data set
+
+pred <- as.data.frame(cbind(knnPred.long, 
+                            knnPred.lat, 
+                            testing[, 370]))
+
+
+
+pred <- pred %>% 
+  rename(Longitude = knnPred.long,
+         Latitude = knnPred.lat,
+         Floor = V3)
+
+pred$id <- 1
+testing$id <- 0
+
+
+# ... and combining it with the actual data
+
+plot.data <- rbind(testing[, c(1,2,370,379)], pred)
+
+
+# .. to show predicted and actual data in one plot
+
+plot_ly(plot.data, x = ~Latitude, y = ~Longitude, z = ~Floor) %>%
+  add_markers(color = ~id)
+
+
